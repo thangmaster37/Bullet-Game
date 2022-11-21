@@ -1,0 +1,277 @@
+import pygame
+import csv
+
+pygame.init()
+
+clock = pygame.time.Clock()
+FPS = 60
+
+# game window
+SCREEN_WIDTH = 640
+SCREEN_HEIGHT = 512
+LOWER_MARGIN = 96
+SIDE_MARGIN = 224
+
+screen = pygame.display.set_mode((SCREEN_WIDTH + SIDE_MARGIN, SCREEN_HEIGHT + LOWER_MARGIN))
+pygame.display.set_caption('Level Editor')
+
+# define game variables
+ROWS = 16
+MAX_COLS = 150
+TILE_SIZE = 32
+TILE_TYPES = 20
+TILE_MAP3 = 38
+save_width = 60
+save_height = 30
+load_width = 60
+load_height = 30
+
+count = 9
+
+# define game variables
+scroll_left = False
+scroll_right = False
+scroll_up = False
+scroll_down = False
+scroll_mouse_left = False
+save_level = False
+
+scroll = 0
+scroll_pull = 0
+scroll_speed = 1
+current_tile=0
+
+# load image background
+pine1_img = pygame.image.load("pine1.png").convert_alpha()
+pine2_img = pygame.image.load("pine2.png").convert_alpha()
+pine2_img = pygame.transform.scale(pine2_img,(1376,300)).convert_alpha()
+mountain_img = pygame.image.load("mountain.png").convert_alpha()
+sky_img = pygame.image.load("sky_cloud.png").convert_alpha()
+
+background6 = pygame.image.load("background6.png").convert_alpha()
+background6 = pygame.transform.scale(background6, (640, 512))
+
+# store tiles in a list
+img_list = []
+for x in range(TILE_TYPES+1):
+	img = pygame.image.load("Tile ({}).png".format(x))
+	img = pygame.transform.scale(img,(TILE_SIZE,TILE_SIZE))
+	img_list.append(img)
+
+for i in range(1,61):
+	img = pygame.image.load("Tile_{}.png".format(i))
+	img = pygame.transform.scale(img,(TILE_SIZE,TILE_SIZE))
+	img_list.append(img)
+
+for i in range(1,14):
+	img = pygame.image.load("picture ({}).png".format(i))
+	img = pygame.transform.scale(img,(TILE_SIZE,TILE_SIZE))
+	img_list.append(img)
+
+
+
+flag = pygame.image.load("Flag.png")
+flag = pygame.transform.scale(flag, (TILE_SIZE,TILE_SIZE))
+img_list.append(flag)
+
+
+for i in range(1, TILE_MAP3 + 1):
+	img = pygame.image.load("Ice ({}).png".format(i))
+	img = pygame.transform.scale(img,(TILE_SIZE,TILE_SIZE))
+	img_list.append(img)
+
+
+
+# load image save and load
+save = pygame.image.load("save_btn.png")
+save = pygame.transform.scale(save,(save_width,save_height))
+load = pygame.image.load("load_btn.png")
+load = pygame.transform.scale(load,(load_width,load_height))
+
+# define columns
+GREEN = (144,201,120)
+WHITE = (255,255,255)
+RED = (200,25,25)
+
+
+
+# create function for drawing background
+def draw_bg():
+	screen.fill(GREEN)
+	width = background6.get_width()
+	for x in range(6):
+		# screen.blit(sky_img,((x * width) - scroll * 0.5,0))
+		# screen.blit(mountain_img,((x * width) - scroll * 0.6,SCREEN_HEIGHT - mountain_img.get_height() - 100))
+		# screen.blit(pine1_img,((x * width) - scroll * 0.7,SCREEN_HEIGHT - pine1_img.get_height()))
+		# screen.blit(pine2_img,((x * width) - scroll * 0.8,SCREEN_HEIGHT - pine2_img.get_height()))
+		screen.blit(background6, ((x * width) - scroll, 0))
+# draw grid
+def draw_grid():
+	for c in range(MAX_COLS + 1):
+		pygame.draw.line(screen,WHITE,(c * TILE_SIZE - scroll, 0), (c * TILE_SIZE - scroll,SCREEN_HEIGHT))
+	for c in range(ROWS + 1):
+		pygame.draw.line(screen,WHITE,(0, c * TILE_SIZE), (SCREEN_WIDTH,c * TILE_SIZE))
+
+# draw bg_green_main
+def draw_green():
+	for i in range(10):
+		pygame.draw.rect(screen,GREEN,(SCREEN_WIDTH, 0, SIDE_MARGIN, SCREEN_HEIGHT * i + scroll_pull))
+
+
+# draw save and load
+def draw_save_load():
+	screen.blit(save,(SCREEN_WIDTH // 2 - 100, (SCREEN_HEIGHT + LOWER_MARGIN) - 75))
+
+	screen.blit(load,(SCREEN_WIDTH // 2 + 100, (SCREEN_HEIGHT + LOWER_MARGIN) - 75))
+
+
+# draw image list 
+list_coordinates_small = []
+def draw_img_list():
+    button_col=0
+    button_row=0
+    for i in range(len(img_list)):
+        if button_col==3:
+            button_row+=1
+            button_col=0
+        screen.blit(img_list[i],(SCREEN_WIDTH + TILE_SIZE * (button_col+1) + TILE_SIZE * (button_col), (button_row+1) * TILE_SIZE + (button_row) * TILE_SIZE + scroll_pull))
+        a=SCREEN_WIDTH+TILE_SIZE*(button_col+1)+TILE_SIZE*(button_col)
+        b=TILE_SIZE*(button_row+1)+TILE_SIZE*(button_row) + scroll_pull
+        coordinate = [a,b]
+        list_coordinates_small.append(coordinate)
+        button_col+=1
+
+# create matrix
+world_data=[]
+for i in range(ROWS):
+    r=[-1]*MAX_COLS
+    world_data.append(r)
+
+
+def draw_world():
+    for y,row in enumerate(world_data):
+        for x,tile in enumerate(row):
+            if tile >= 0:
+                screen.blit(img_list[tile],(x*TILE_SIZE-scroll,y*TILE_SIZE))
+
+
+
+run = True
+while run:
+
+	clock.tick(FPS)
+
+	draw_bg()
+	draw_grid()
+	
+	# Draw any image on the screen
+	draw_world()
+	
+	# draw tile panel and tiles
+	draw_green()
+	draw_img_list()
+	draw_save_load()
+
+	# Coordinates
+	mouse_x,mouse_y=pygame.mouse.get_pos() 
+	print(mouse_x,mouse_y)
+	x=((mouse_x+scroll)//TILE_SIZE)
+	y=((mouse_y)//TILE_SIZE)
+
+
+
+	# Draw a red rectangle around the image
+	if scroll_mouse_left == True:
+		for i in range(len(img_list)):
+			if list_coordinates_small[i][0]<mouse_x<list_coordinates_small[i][0]+32 and list_coordinates_small[i][1]<mouse_y<list_coordinates_small[i][1]+32:
+				if scroll_pull != 0:
+					current_tile = i + (((-scroll_pull)*3)//32)//2
+				else:
+					current_tile = i
+				pygame.draw.rect(screen,RED,(list_coordinates_small[i][0],list_coordinates_small[i][1], 32, 32))   
+
+		print(scroll_pull)
+	
+    # Save button and delete 
+	if mouse_x < SCREEN_WIDTH and mouse_y < SCREEN_HEIGHT:
+		if pygame.mouse.get_pressed()[0] == 1:    
+			if world_data[y][x] != current_tile:   	
+ 				world_data[y][x] = current_tile
+    			   	
+		if pygame.mouse.get_pressed()[2] == 1:
+			world_data[y][x] = -1	
+    	
+
+	# save and load data
+	if scroll_mouse_left == True and (SCREEN_WIDTH // 2 - 100) < mouse_x < (SCREEN_WIDTH // 2 - 100 + save_width) and (SCREEN_HEIGHT + LOWER_MARGIN - 75) < mouse_y < (SCREEN_HEIGHT + LOWER_MARGIN - 75 + save_height):
+		
+		pygame.draw.rect(screen,RED, (SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT + LOWER_MARGIN - 75, save_width, save_height))
+
+		
+		with open(f'level_data{count}.csv','w', newline = '') as csvfile:
+			writer = csv.writer(csvfile, delimiter = ',')
+			for row in world_data:
+				writer.writerow(row)
+
+
+	if scroll_mouse_left == True and (SCREEN_WIDTH // 2 - 100 + 200) < mouse_x < (SCREEN_WIDTH // 2 - 100 + save_width + 200) and (SCREEN_HEIGHT + LOWER_MARGIN - 75) < mouse_y < (SCREEN_HEIGHT + LOWER_MARGIN - 75 + save_height):
+		
+		pygame.draw.rect(screen,RED,(SCREEN_WIDTH // 2 - 100 + 200, SCREEN_HEIGHT + LOWER_MARGIN - 75, load_width, load_height))
+
+		with open(f'level_data{count}.csv','r', newline = '') as csvfile:
+			file = csv.reader(csvfile, delimiter = ',')
+			for x, row in enumerate(file):
+				for y, tile in enumerate(row):
+					world_data[x][y] = int(tile)
+
+
+
+	# scroll the map
+	if scroll_left == True and scroll >= 0:
+		scroll -= 5 * scroll_speed
+	if scroll_right == True and scroll < SCREEN_WIDTH * 5:
+		scroll += 5 * scroll_speed
+	if scroll_up == True and scroll_pull > -2300:
+		scroll_pull -= 64
+	if scroll_down == True and scroll_pull < 0:
+		scroll_pull += 64
+
+
+
+	for event in pygame.event.get():
+		if event.type == pygame.QUIT:
+			run = False
+			#count += 1
+		if event.type == pygame.KEYDOWN:
+			if event.key == pygame.K_LEFT:
+				scroll_left = True
+			if event.key == pygame.K_RIGHT:
+				scroll_right = True
+			if event.key == pygame.K_UP:
+				scroll_up = True
+			if event.key == pygame.K_DOWN:
+				scroll_down = True
+			if event.key == pygame.K_RSHIFT:
+				scroll_speed = 5	
+		if event.type == pygame.KEYUP:
+			if event.key == pygame.K_LEFT:
+				scroll_left = False
+			if event.key == pygame.K_RIGHT:
+				scroll_right = False
+			if event.key == pygame.K_UP:
+				scroll_up = False
+			if event.key == pygame.K_DOWN:
+				scroll_down = False
+			if event.key == pygame.K_RSHIFT:
+				scroll_speed = 1
+
+		if event.type == pygame.MOUSEBUTTONDOWN:
+			if event.button == 1:
+				scroll_mouse_left = True
+
+		if event.type == pygame.MOUSEBUTTONUP:
+			if event.button == 1:
+				scroll_mouse_left = False
+   
+	pygame.display.update()
+pygame.quit()
